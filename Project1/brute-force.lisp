@@ -4,6 +4,14 @@
 ;; First part is of the format "NAME: some text"
 ;; Then the line "NODE_COORD_SECTION"
 ;; then enumerated line by line like this: "1 87.951292 2.658162"
+(defmacro truncate-vars (&body vars)
+  (cons 'progn 
+	(loop for var in vars
+	   collect `(setq ,var (truncate ,var)))))
+(defparameter a 1.2)
+(defparameter b 2.1)
+(truncate-vars a b)
+(list a b)
 
 (ql:quickload "cl-ppcre")
 (ql:quickload :iterate)
@@ -40,57 +48,14 @@
 	       (push (mapcar #'read-from-string (list num x y)) points)))))
     (list header points)))
 
-;; get into the REAL programming
-(defun seq-permutations (seq &optional (n 0))
-  " create all permutations of a seq, return list of sequences"
-  (let ((len (length seq)))
-    (cond ((= n (1- len))
-	   (list (copy-seq seq)))
-	  (t
-	   (loop for i from n below len
-	      append (progn
-			(rotatef (aref seq i) (aref seq n))
-			(let ((result 
-			       (seq-permutations seq (1+ n))))
-			  (rotatef (aref seq i) (aref seq n))
-			  result)))))))
-
-(defun distance (point-1 point-2)
-  " euclidean distance, based on (id x y) format of points"
-  (destructuring-bind ((n1 x1 y1) (n2 x2 y2)) (list point-1 point-2)
-    (declare (ignore n1 n2))
-    (sqrt (+ (expt (- x1 x2) 2) (expt (- y1 y2) 2)))))
-
-
-(defun evaluate (seq-of-points)
-  " gives distance of some traversal"
-  (iter (for point-2 in-vector seq-of-points)
-	   (for point-1 previous point-2)
-	   (if-first-time (next-iteration))
-	   (sum (distance point-1 point-2))))
-;;(evaluate #((1 1.2 1.3) (2 0.1 0.2) (2 0.9 0.2)))
-
 (defun vector-to-list (vec)
   (iter (for x in-vector vec)
 	(collect x)))
 
-(defun find-best-path (filename)
-  "big ol' finder function"
-  (let* ((header-points (get-points filename))
-	 (header (car header-points))
-	 (points (cadr header-points))
-	 (permutations (seq-permutations (apply #'vector points))))
-    (list
-     header
-     (iter (for list-of-points in permutations)
-	   (for cost = (evaluate list-of-points))
-	   (finding (list cost (vector-to-list list-of-points)) minimizing cost)))))
-
 (defun coord-distance (x1 x2 y1 y2)
   (sqrt (+ (expt (- x1 x2) 2) (expt (- y1 y2) 2))))
-  
 	
-(defun memory-efficient-find-best-path-helper (seq &optional (n 0))
+(defun find-best-path-helper (seq &optional (n 0))
   " create all permutations of a seq, collect min cost sequence"
   (let ((distance-matrix
 	 (make-array
@@ -99,17 +64,17 @@
 	  (iter (for (n1 x1 y1) in-vector seq)
 		(collect (iter (for (n2 x2 y2) in-vector seq)
 			       (collect (coord-distance x1 x2 y1 y2))))))))
-    (labels ((distance-fast (p1 p2)
+    (labels ((distance (p1 p2)
 	       (aref distance-matrix (1- (car p1)) (1- (car p2))))
-	     (evaluate-fast (seq-of-points)
+	     (evaluate (seq-of-points)
 	       (iter (for point-2 in-vector seq-of-points)
 		     (for point-1 previous point-2 initially (last-elt seq-of-points))
-		     (sum (distance-fast point-1 point-2))))
+		     (sum (distance point-1 point-2))))
 	     (swap-recur-unswap (seq a b)
 	       (progn
 		 (rotatef (aref seq a) (aref seq b))
 		 (let ((result 
-			(memory-efficient-find-best-path-helper seq (1+ n))))
+			(find-best-path-helper seq (1+ n))))
 		   (rotatef (aref seq a) (aref seq b))
 		   result))))
       (let ((len (length seq)))
@@ -120,12 +85,17 @@
 		     (for loss-and-seq = (swap-recur-unswap seq i n))
 		     (finding loss-and-seq minimizing (car loss-and-seq)))))))))
 
-(defun memory-efficient-find-best-path (filename)
-  (memory-efficient-find-best-path-helper (apply #'vector (cadr (get-points filename)))))
+(defun find-best-path (filename)
+  (find-best-path-helper (apply #'vector (cadr (get-points filename)))))
 
-(format t "~a~%~%" (find-best-path "Random4.tsp"))
-  
-(format t "~a~%~%" (memory-efficient-find-best-path "Random4.tsp"))
+(get-universal-time)
+(get-internal-real-time)
+(get-internal-run-time)
+
+
+(iter (for n from 4 to 6)
+
+      (format t "~a points:~% ~a~%~%" n (find-best-path (format nil "Random~a.tsp" n))))
 ;; (134.0372
 ;;  #((4 20.526749 47.63329) (2 33.4666 66.682945) (3 91.77831 53.807182)
 ;;    (1 87.951294 2.658162)))
