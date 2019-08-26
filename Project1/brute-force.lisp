@@ -4,25 +4,24 @@
 ;; First part is of the format "NAME: some text"
 ;; Then the line "NODE_COORD_SECTION"
 ;; then enumerated line by line like this: "1 87.951292 2.658162"
-(defmacro truncate-vars (&body vars)
-  (cons 'progn 
-	(loop for var in vars
-	   collect `(setq ,var (truncate ,var)))))
-(defparameter a 1.2)
-(defparameter b 2.1)
-(truncate-vars a b)
-(list a b)
 
-(ql:quickload "cl-ppcre")
-(ql:quickload :iterate)
-(ql:quickload :alexandria)
+(ql:quickload :cl-interpol) ;; for \t \n syntax in strings
+(cl-interpol:enable-interpol-syntax)
+(ql:quickload :local-time) ;; for microsecond time precision
+(ql:quickload :cl-ppcre) ;; for regex
+(ql:quickload :iterate) ;; for better iteration macro
+(ql:quickload :alexandria) ;; last-elt and other helpers
 (defpackage brute-force
   (:use :common-lisp :iterate :alexandria))
 
 (in-package :brute-force)
 
+(defun join-lines (&rest strings)
+  "joins lines with newline, and ends with newline"
+  (format nil "~{~a~%~}" strings))
 
 (defmacro for-in-file-lines ((var-name file-name) &body body)
+  "iterate through lines in a file"
   (let ((in (gensym)))
     `(let ((,in (open ,file-name :if-does-not-exist nil)))
        (when ,in
@@ -31,6 +30,8 @@
 	 (close ,in))))
 
 (defun get-points (filename)
+  "takes string filename and returns (metadata points) pair.
+   Points are list of (n x y) triples"
   (let ((is-header t)
 	(header nil)
 	(points nil))
@@ -46,108 +47,114 @@
 	     (ppcre:register-groups-bind (num x y)
 		 ("(\\d+) ([,.\\d]+) ([,.\\d]+)" line)
 	       (push (mapcar #'read-from-string (list num x y)) points)))))
-    (list header points)))
+    (list header (reverse points))))
 
 (defun vector-to-list (vec)
   (iter (for x in-vector vec)
 	(collect x)))
 
 (defun coord-distance (x1 x2 y1 y2)
+  "mathy distance function"
   (sqrt (+ (expt (- x1 x2) 2) (expt (- y1 y2) 2))))
-	
-(defun find-best-path-helper (seq &optional (n 0))
-  " create all permutations of a seq, collect min cost sequence"
-  (let ((distance-matrix
-	 (make-array
-	  (list (length seq) (length seq))
-	  :initial-contents
-	  (iter (for (n1 x1 y1) in-vector seq)
-		(collect (iter (for (n2 x2 y2) in-vector seq)
-			       (collect (coord-distance x1 x2 y1 y2))))))))
-    (labels ((distance (p1 p2)
-	       (aref distance-matrix (1- (car p1)) (1- (car p2))))
-	     (evaluate (seq-of-points)
-	       (iter (for point-2 in-vector seq-of-points)
-		     (for point-1 previous point-2 initially (last-elt seq-of-points))
-		     (sum (distance point-1 point-2))))
-	     (swap-recur-unswap (seq a b)
-	       (progn
+
+(defun distance (p1 p2)
+  "eucledian distance between two (n x y) points"
+  (destructuring-bind ((n1 x1 y1) (n2 x2 y2)) (list p1 p2)
+    (declare (ignore n1 n2))
+    (coord-distance x1 x2 y1 y2)))
+
+(defun evaluate (seq)
+  "get distance between each pair of points"
+  (iter (for p1 in-vector seq)
+	(for p2 previous p1 initially (last-elt seq))
+	(sum (distance p1 p2))))
+ 
+(defun find-best-path-helper (seq &optional (n 1)) ;; start at n=1 so first element isnt permuted
+  " create all permutations of a seq, collect min cost sequence.
+  returns (loss, seq) pair"
+  (labels ((swap-recur-unswap (seq a b)
+	     (progn
+	       (rotatef (aref seq a) (aref seq b))
+	       (let ((result 
+		      (find-best-path-helper seq (1+ n))))
 		 (rotatef (aref seq a) (aref seq b))
-		 (let ((result 
-			(find-best-path-helper seq (1+ n))))
-		   (rotatef (aref seq a) (aref seq b))
-		   result))))
-      (let ((len (length seq)))
-	(cond ((= n (1- len))
-	       (list (evaluate seq) (copy-seq seq)))
-	      (t
-	       (iter (for i from n below len)
-		     (for loss-and-seq = (swap-recur-unswap seq i n))
-		     (finding loss-and-seq minimizing (car loss-and-seq)))))))))
+		 result))))
+    (let ((len (length seq)))
+      (cond ((= n (1- len))
+	     (list (evaluate seq) (copy-seq seq)))
+	    (t
+	     (iter (for i from n below len)
+		   (for loss-and-seq = (swap-recur-unswap seq i n))
+		   ;; Adds the numeral of seconds point in the path, to get a unique solution
+		   ;; otherwise there would be two solutions, going in opposite directions.
+		   (finding loss-and-seq minimizing (+ (car loss-and-seq) (car (aref seq 1))))))))))
 
 (defun find-best-path (filename)
+  "uses a helper to seperate loading from recursion"
   (find-best-path-helper (apply #'vector (cadr (get-points filename)))))
 
-(get-universal-time)
-(get-internal-real-time)
-(get-internal-run-time)
+  
+(let ((time-millis nil)
+      (time-micros nil))
+  (defun timer-start ()
+    "starts a timer. Read out elapsed time by calling timer-end."
+    (setq time-millis (get-internal-real-time))
+    (setq time-micros (local-time:timestamp-microsecond (local-time:now)))
+    nil)
+  (defun timer-end ()
+    "time since last call to timer-start. 
+    Returns pair (n units) with units of secs, millis or micros."
+    (let* ((dt-micros (- (local-time:timestamp-microsecond (local-time:now)) time-micros))
+	   (dt-millis (- (get-internal-real-time) time-millis)))
+      (cond
+	((> dt-millis 1000)
+	 (list (* 1e-3 dt-millis) 'secs))
+	((> dt-millis 1)
+	 (list dt-millis 'millis))
+	(t 
+	  (list (floor (mod dt-micros 1e6)) 'micros))))))
+  
+(defun print-all-solutions ()
+  "creates nice printout with one solution per line"
+  (format t "~%~%~%")
+  (format t #?"~%name    \ttime    \tdistance\tpath~%")
+  (iter (for n from 4 to 12)
+	(timer-start)
+	(let* ((distance-path (find-best-path (format nil "Random~a.tsp" n)))
+	       (distance (car distance-path))
+	       (path (vector-to-list (cadr distance-path)))
+	       (time (timer-end))
+	       (path-ns (mapcar #'car path)))
+	  (format t #?"Random~a.tsp\t~{~a~^ ~}\t~a\t[~{~a~^, ~}]~%" n time (round distance) path-ns))))
 
 
-(iter (for n from 4 to 6)
+(defun solve-and-write-to-file (n)
+  "call with n to open tsp, solve it, and write a solution tsp out"
+  (with-open-file (outfile (format nil "Random~a_solution.tsp" n) :direction :output :if-exists :supersede)
+    (let* ((start-time (get-internal-real-time))
+	   (distance-path (find-best-path (format nil "Random~a.tsp" n)))
+	   (distance (car distance-path))
+	   (path (vector-to-list (cadr distance-path)))
+	   (time (/ (- (get-internal-real-time) start-time) 1000.0)))
+      (format
+       outfile
+       (join-lines
+	"NAME: concorde~a"
+	"TYPE: TSP"
+	"RUN_TIME: ~a"
+	"DISTANCE: ~a"
+	"COMMENT: Solution by max williams"
+	"DIMENSION: ~a"
+	"EDGE_WEIGHT_TYPE: EUC_2D"
+	"NODE_COORD_SECTION")
+       n time (round distance) n) 
+      (iter (for (nn x y) in path)
+	    (format outfile "~a ~,6f ~,6f~%" nn x y)))))
 
-      (format t "~a points:~% ~a~%~%" n (find-best-path (format nil "Random~a.tsp" n))))
-;; (134.0372
-;;  #((4 20.526749 47.63329) (2 33.4666 66.682945) (3 91.77831 53.807182)
-;;    (1 87.951294 2.658162)))
+(defun solve-all-and-write-to-files ()
+  (iter (for n from 4 to 12)
+	(solve-and-write-to-file n)
+	(format t "solved ~a~%" n)))
 
-(format t "~a~%~%" (memory-efficient-find-best-path "Random5.tsp"))
-;; (92.57153
-;;  #((4 50.735294 33.333332) (3 64.70588 76.16034) (5 53.104576 90.7173)
-;;    (2 42.565357 77.00422) (1 31.045752 75.52743)))
-
-(format t "~a~%~%" (memory-efficient-find-best-path "Random6.tsp"))
-;; (89.410904
-;;  #((4 60.04902 48.734177) (5 43.545753 49.156116) (6 30.228758 51.47679)
-;;    (1 30.147058 79.74683) (2 45.99673 78.27004) (3 61.19281 78.27004)))
-
-(format t "~a~%~%" (memory-efficient-find-best-path "Random7.tsp"))
-;; (44.848824
-;;  #((7 27.042484 59.07173) (3 21.486929 67.08861) (2 29.003267 69.83122)
-;;    (6 25.571896 72.57384) (5 24.019608 78.691986) (1 29.656862 81.22363)
-;;    (4 20.915033 86.49789)))
-
-(time (format t "~a~%~%" (memory-efficient-find-best-path "Random8.tsp")))
-;; (238.81973
-;;  #((5 9.006012 81.18534) (2 33.4666 66.682945) (4 20.526749 47.63329)
-;;    (8 41.059605 32.57851) (6 20.03235 2.761925) (1 87.951294 2.658162)
-;;    (7 77.18131 31.922361) (3 91.77831 53.807182)))
-
-(time (format t "~a~%~%" (memory-efficient-find-best-path "Random9.tsp")))
-;; (105.01195
-;;  #((5 52.108433 47.905758) (3 41.566265 37.303665) (6 33.373493 45.81152)
-;;    (7 30.481928 55.497383) (1 21.024096 75.65445) (8 38.192772 78.01047)
-;;    (4 37.048195 74.34555) (9 42.168674 67.93194) (2 57.771084 73.29843)))
-
-(format t "~a~%~%" (memory-efficient-find-best-path "Random10.tsp"))
-;; (84.03515
-;;  #((6 23.77451 59.70464) (7 25.245098 67.72152) (8 30.06536 66.24473)
-;;    (5 38.071896 60.759495) (9 36.02941 70.88608) (10 49.264706 71.940926)
-;;    (4 40.27778 80.379745) (3 30.392157 79.3249) (2 23.039215 81.4346)
-;;    (1 22.54902 89.02953)))
-
-(format t "~a~%~%" (memory-efficient-find-best-path "Random11.tsp"))
-;; (84.03515
-;;  #((6 23.77451 59.70464) (7 25.245098 67.72152) (8 30.06536 66.24473)
-;;    (5 38.071896 60.759495) (9 36.02941 70.88608) (10 49.264706 71.940926)
-;;    (4 40.27778 80.379745) (3 30.392157 79.3249) (2 23.039215 81.4346)
-;;    (1 22.54902 89.02953)))
-
-(format t "~a~%~%" (memory-efficient-find-best-path "Random12.tsp"))
-;; (56.813557
-;;  #((12 29.820261 65.822784) (4 35.702614 59.2827) (9 31.862745 55.27426)
-;;    (5 29.084967 52.109707) (10 25.571896 53.16456) (6 21.650328 58.016876)
-;;    (7 22.46732 64.55696) (11 24.183006 69.19831) (1 25.816994 74.261604)
-;;    (8 28.676472 76.16034) (2 32.35294 77.42616) (3 34.477123 73.83966)))
-
-
-
+;;(print-all-solutions)
+;;(solve-all-and-write-to-files)
