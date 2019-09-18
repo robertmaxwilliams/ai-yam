@@ -20,6 +20,7 @@
 (defparameter offset-x 0)
 (defparameter offset-y 0)
 (defparameter zoom 1.0)
+(defparameter *b* 2.0)
 
 (defun iter-to-color (i)
   (declare (fixnum i))
@@ -50,10 +51,11 @@
     (iter
       (for i from 0 below max-iter)
       (declare (fixnum i))
-      (setq z (+ (* z z) c))
+      (setq z (+ (if (= *b* 2) (* z z) (expt z *b*)) c))
       (if (>= (the single-float (abs z)) (the single-float 2.0))
 	  (return (iter-to-color i))
       (finally (return (z-to-color z)))))))
+
 
 
 
@@ -70,7 +72,7 @@
 
 (let ((x 0))
   (defun has-offset-zoom-changed ()
-    (let* ((hash (sxhash (list *size* *max-iter* offset-x offset-y zoom)))
+    (let* ((hash (reduce #'+ (mapcar #'sxhash (list offset-y *b* *size* *max-iter* offset-x offset-y zoom))))
            (x-is-same (= x hash)))
       (setq x hash)
       (not x-is-same))))
@@ -150,6 +152,9 @@
      (case (sdl2:scancode keysym)
        (:scancode-w (incf offset-y move-amount))
        (:scancode-s (incf offset-y (- move-amount)))
+       (:scancode-rightbracket (format t "b: ~A~%" (incf *b* 0.1)))
+       (:scancode-leftbracket (format t "b: ~A~%" (decf *b* 0.1)))
+       (:scancode-apostrophe (format t "b: ~A~%" (setq *b* 2)))
        (:scancode-a (incf offset-x move-amount))
        (:scancode-d (incf offset-x (- move-amount)))
        (:scancode-q (zoom-mult 0.9))

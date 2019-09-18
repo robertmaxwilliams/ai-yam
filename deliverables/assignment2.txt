@@ -1,0 +1,80 @@
+Robert Max Williams
+Tomas F. Llano
+
+3.10 Define in your own words the following terms: state, state space, search
+tree, search node, goal, action, transition model, and branching factor.
+
+State: All of the information in the environment in a given moment
+
+State space: all possible states
+
+Search tree: Tree with root as starting state and braching on all possible
+actions at that state, and from all other states.
+
+Search node: "a node in the search tree"
+
+Goal: the state (or node) that the agent wishes to reach, search is complete
+once this node is reached.
+
+Action: done by the agent, causes a transition between states
+
+Transition model: A model of the environment which takes a state/action pair and
+gives the next state of the environment.
+
+Branching factor: the maximum number of actions available at any state
+
+3.14
+ Which of the following are true and which are false? Explain your answers.
+ a. Depth-first search always expands at least as many nodes as A* search with
+ an admissible heuristic.
+ b. h(n) = 0 is an admissible heuristic for the 8-puzzle.
+ c. A* is of no use in robotics because percepts, states, and actions are continuous.
+ d. Breadth-first search is complete even if zero step costs are allowed.
+ e. Assume that a rook can move on a chessboard any number of squares in a
+ straight line, vertically or horizontally, but cannot jump over other pieces.
+ Manhattan distance is an admissible heuristic for the problem of moving the
+ rook from square A to square B in the smallest number of moves.
+
+a. False, depth first might get lucky and go straight to the solution without
+any branching
+
+b. True! It would turn A* in Dijkstra
+
+c. False, there are many sub-problems that can solved using A*, for example it
+might have a model of the world with discrete actions that it can search with
+A*, or the problem could be directly discrete (i.e. lock picking with servos)
+
+d. False, if an infinity path from the root has zero cost, then BFS could get "stuck" going
+infinitely deep without exceeding a small finite cost. The same could happen for
+convergent sequences, i.e. 1/2^n
+
+e. False. Counterexample: A rook on a empty board could move from A1 to D7 in
+two moves, but manhattan distance between these points is 9, which is an
+overestimate.
+
+ 
+3.15 Consider a state space where the start state is number 1 and each state k has two
+successors: numbers 2k and 2k + 1.
+a. Draw the portion of the state space for states 1 to 15.
+b. Suppose the goal state is 11. List the order in which nodes will be visited for breadth-
+first search, depth-limited search with limit 3, and iterative deepening search.
+c. How well would bidirectional search work on this problem? What is the branching
+factor in each direction of the bidirectional search?
+
+          1
+     /         \
+    2          3
+  /   \      /   \
+ 4    5     6     7
+/ \  / \   / \   / \
+8 9 10 11 12 13 14 15
+
+BFS: 1 2 3 4 5 6 7 8 9 10 11*
+DFS(3): 1 2 4 8 9 5 10 11
+iterative deepening DFS:
+1
+1 2 3
+1 2 4 5 3 6 7
+1 2 4 8 9 5 10 11
+
+c: Good, because floor(n/2) is backwards path!

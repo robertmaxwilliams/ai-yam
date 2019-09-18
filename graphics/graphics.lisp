@@ -10,7 +10,7 @@
 
 (defpackage :max-graphics
   (:use :cl :iterate :alexandria)
-  (:export "MAIN" "DRAW-CIRCLE" "DRAW-NUMBER" 
+  (:export "MAIN" "DRAW-CIRCLE" "DRAW-NUMBER" "DRAW-LINE"
 	   "DRAW-CIRCLE" "DRAW-ARROW-WITH-OFFSETS" "DRAW-ARROW"
 	   "DEBUG-LOG" "SETUP-GL"))
 (in-package :max-graphics)
@@ -53,7 +53,12 @@
 	  (:cyan 0 1.0 1.0)
 	  (:magenta 1.0 0 1.0))))
   (defun get-color-from-name (name)
-    (append (cdr (error-if-null (assoc name colors-alist))) '(255)))
+    (cond
+      ((atom name)
+       (append (cdr (error-if-null (assoc name colors-alist))) '(0.2)))
+      ((= (length name) 3) (append name '(0.2)))
+      ((= (length name) 4) name)
+      (t (error "bad color definition"))))
   (defun set-color (color)
     (apply #'gl:color (get-color-from-name color))))
 
@@ -152,8 +157,26 @@
 (defun *-ls (ls scalar)
   (mapcar (lambda (x) (* x scalar)) ls))
 
+
+(defun draw-line (x1 y1 x2 y2 thickness &optional (color :white))
+  (set-color color)
+  (gl-with :polygon
+    (destructuring-bind (dx dy) (*-ls (orthagonal-unit x1 y1 x2 y2) (/ thickness 2))
+      (gl:vertex x1 y1)
+      (gl:vertex x2 y2)
+      (gl:vertex (+ x2 dx) (+ y2 dy))
+      (gl:vertex (+ x1 dx) (+ y1 dy))
+      )))
+
+
+(defun l2 (x1 y1 x2 y2)
+  (sqrt (+ (expt (- x1 x2) 2) (expt (- y1 y2) 2))))
+
 (defun draw-arrow (x1 y1 x2 y2 thickness arrow-depth &optional (color :white))
   (set-color color)
+  (let ((length (l2 x1 y1 x2 y2)))
+    (if (< length arrow-depth)
+	(setq arrow-depth (* 0.5 length))))
   (gl-with :polygon
     (destructuring-bind (dx dy) (*-ls (orthagonal-unit x1 y1 x2 y2) (/ thickness 2))
       (destructuring-bind (dx2 dy2) (*-ls (parallel-unit x1 y1 x2 y2) (- arrow-depth))

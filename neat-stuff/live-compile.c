@@ -49,21 +49,54 @@ void print_bytes(unsigned char* start, int n) {
 }
 
 typedef int (*operator_t)(int);
+typedef int (*inter_t)();
 
-int main() {
-    unsigned char* code = "int foo(int x) { return x + 1; }";
+int compile_no_arg_inter(char* code_string) {
+
     int status;
-
     FILE* fp = popen("gcc -g -c -xc - -o foo.o", "w");
-    fputs(code, fp);
+    fputs(code_string, fp);
     pclose(fp);
     status = system("objcopy -O binary --only-section=.text foo.o foo.code");
 
     unsigned char* foo_code = read_file_into_heap("foo.code");
-    print_bytes(foo_code, 6);
+    //print_bytes(foo_code, 6);
 
-    operator_t foo_fun = (operator_t)foo_code;
-    printf("foo(5) = %d", foo_fun(5));
+    inter_t foo_fun = (inter_t)foo_code;
+    return foo_fun();
+}
+
+int main() {
+
+    int size = 100;
+    char* code = malloc(size*sizeof(char));
+    const char* temp = "int foo() {  return      ";
+    strncpy(code, temp, size*sizeof(char));
+    //printf("\n Pre code code: \n%s\n", code);
+    int i = strlen(temp) - 1;
+    char c = '\0';
+    printf(">>> ");
+    while (c != '\n'){
+        c = getchar();
+
+        //printf("Char: %d %c\n", i, c);
+        code[i] = c;
+        i++;
+        if (i >= size) {
+            //printf("reallocating to bigger\n");
+            size = size * 2;
+            code = realloc(code, size);
+        }
+    }
+    code[i++] = ';';
+    code[i++] = '}';
+    code[i++] = '\n';
+
+    //printf("\n Your code: \n%s\n", code);
+    int result = compile_no_arg_inter(code);
+    printf("%d\n", result);
+
+    main();
 
     return 0;
 }

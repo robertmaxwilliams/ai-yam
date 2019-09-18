@@ -114,11 +114,11 @@
 	(t 
 	  (list (floor (mod dt-micros 1e6)) 'micros))))))
   
-(defun print-all-solutions ()
+(defun print-all-solutions (&optional (max-n 9))
   "creates nice printout with one solution per line"
   (format t "~%~%~%")
   (format t #?"~%name    \ttime    \tdistance\tpath~%")
-  (iter (for n from 4 to 12)
+  (iter (for n from 4 to max-n)
 	(timer-start)
 	(let* ((distance-path (find-best-path (format nil "Random~a.tsp" n)))
 	       (distance (car distance-path))

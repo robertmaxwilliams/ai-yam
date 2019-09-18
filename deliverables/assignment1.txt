@@ -1,0 +1,112 @@
+2.3
+
+a.  a. An agent that senses only partial information about the state cannot be
+    perfectly rational.
+
+False, it can be rational given the information it has.
+
+b.  There exist task environments in which no pure reflex agent can behave
+    rationally.
+
+True, there can be hidden state that has to be remembered
+
+c.  There exists a task environment in which every agent is rational.
+
+True, if actions are ignored and reward is fixed? Seems pointless.
+
+d.  The input to an agent program is the same as the input to the agent
+    function.
+
+???
+ANSWER: the agent function takes the entire history, the agent program only
+takes current input.
+
+e.  Every agent function is implementable by some program/machine combination.
+
+???
+ANSWER: False, may be incomputable.
+
+f.  Suppose an agent selects its action uniformly at random from the set of
+    possible actionsa There exists a deterministic task environment in which this
+    agent is rational.
+
+True, for example the k-armed bandit with all bandits equal.
+
+g. It is possible for a given agent to be perfectly rational in two distinct
+    task environments.
+
+True, a k-armed bandit solver could be rational in many different k-armed bandit
+problems
+
+h. Every agent is rational in an unobservable environment.
+
+True
+
+ANSWER: False, you can still know about your evironment and do better than 
+random, or maybe there is a "DIE" button that you know not to press.
+
+i. A perfectly rational poker-playing agent never loses.
+
+False, it could get really unlucky and winning is impossible.
+
+
+2.5 Define in your own words the following terms: agent, agent function, agent
+    program, rationality, autonomy, reflex agent, model-based agent, goal-based
+    agent, utility-based agent, learning agent.
+
+Agent: takes in observations and produces output to effectors
+
+Agent Function: Mapping of observations to actions, usually a mathematical
+description
+
+Agent Program: Implmentation of the agent function, implemented as a computer
+program
+
+Rationality: Choosing optimal actions given observation to maximize reward.
+
+Autonomy: being able to choose decisions to maximize reward without explicit
+instructions
+
+Reflex Agent: takes actions without accouting for previous observations or
+memory
+
+Model-based agent: agent with explicit internal model of the world
+
+goal-based agent: an agent that tries to reach a specific goal state
+
+utility-based agent: an agent that maximizes a utility function (reward signal)
+
+learning agent: an agent with a policy that changes as new observations are
+made, or maintains parameters based on previous "lives"
+
+
+2.6 This exercise explores the differences between agent functions and agent
+    programs.
+
+a. Can there be more than one agent program that implements a given agent
+    function?  Give an example, or show why one is not possible.
+
+Yes, for example a brute force TSP solver is an agent function, and everyones'
+implementations are all agent programs.
+
+b. Are there agent functions that cannot be implemented by any agent program?
+
+Yes, for example AIXI (https://en.wikipedia.org/wiki/AIXI) which is
+incomputable.
+
+c. Given a fixed machine architecture, does each agent program implement exactly
+    one agent function?
+
+Yes? I think so, if two agent functions are implemented by one agent program,
+then they are the same agent function.
+
+d. Given an architecture with n bits of storage, how many different possible
+    agent pro- grams are there?
+
+2^n
+
+e. Suppose we keep the agent program fixed but speed up the machine by a factor
+    of two.  Does that change the agent function?
+
+This depends on if the environment is sped up as well - if not then this would
+be the same as a frame skip of two.
