@@ -94,7 +94,7 @@ int main() {
 
     //printf("\n Your code: \n%s\n", code);
     int result = compile_no_arg_inter(code);
-    printf("%d\n", result);
+    printf("0x%x, %d\n", result, result);
 
     main();
 
