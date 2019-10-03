@@ -17,24 +17,18 @@
 \providecommand\HyField@AuxAddToFields[1]{}
 \providecommand\HyField@AuxAddToCoFields[2]{}
 \@writefile{toc}{\contentsline {section}{\numberline {1}Introduction}{1}{section.1}}
-\@writefile{toc}{\contentsline {section}{\numberline {2}Headings: first level}{1}{section.2}}
-\newlabel{sec:headings}{{2}{1}{Headings: first level}{section.2}{}}
-\citation{kour2014real}
-\citation{kour2014fast}
-\citation{hadash2018estimate}
-\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Headings: second level}{2}{subsection.2.1}}
-\@writefile{toc}{\contentsline {subsubsection}{\numberline {2.1.1}Headings: third level}{2}{subsubsection.2.1.1}}
-\@writefile{toc}{\contentsline {paragraph}{Paragraph}{2}{section*.1}}
-\@writefile{toc}{\contentsline {section}{\numberline {3}Examples of citations, figures, tables, references}{2}{section.3}}
-\newlabel{sec:others}{{3}{2}{Examples of citations, figures, tables, references}{section.3}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Figures}{2}{subsection.3.1}}
+\@writefile{toc}{\contentsline {section}{\numberline {2}Approach}{1}{section.2}}
+\newlabel{sec:approach}{{2}{1}{Approach}{section.2}{}}
 \bibstyle{unsrt}
-\bibcite{kour2014real}{1}
-\bibcite{kour2014fast}{2}
-\bibcite{hadash2018estimate}{3}
-\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Sample figure caption.}}{3}{figure.1}}
-\newlabel{fig:fig1}{{1}{3}{Sample figure caption}{figure.1}{}}
-\@writefile{lot}{\contentsline {table}{\numberline {1}{\ignorespaces Sample table title}}{3}{table.1}}
-\newlabel{tab:table}{{1}{3}{Sample table title}{table.1}{}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Tables}{3}{subsection.3.2}}
-\@writefile{toc}{\contentsline {subsection}{\numberline {3.3}Lists}{3}{subsection.3.3}}
+\bibdata{references}
+\@writefile{toc}{\contentsline {subsection}{\numberline {2.1}Time Complexity}{2}{subsection.2.1}}
+\newlabel{eq:time}{{1}{2}{Time Complexity}{equation.2.1}{}}
+\@writefile{toc}{\contentsline {section}{\numberline {3}Results}{2}{section.3}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.1}Data}{2}{subsection.3.1}}
+\@writefile{toc}{\contentsline {subsection}{\numberline {3.2}Result}{2}{subsection.3.2}}
+\@writefile{toc}{\contentsline {section}{\numberline {4}Discussion}{2}{section.4}}
+\@writefile{lof}{\contentsline {figure}{\numberline {1}{\ignorespaces Progressive building of a solution, reads left to right, top to bottom. Starting at the top left, the initial randomly selected 3 points form the starting triangle. In 3-nearest mode, the program instead picks one point and selects the two points closest to it and uses that as the starting triangle. In the next pane, blue lines show the distance from each point outside the path to the nearest edge. That point is added to the path and the repeats until all points are added. Also notice the solution cost displayed in the bottom left corner of each pane.\relax }}{3}{figure.caption.1}}
+\providecommand*\caption@xref[2]{\@setref\relax\@undefined{#1}}
+\newlabel{fig:progress}{{1}{3}{Progressive building of a solution, reads left to right, top to bottom. Starting at the top left, the initial randomly selected 3 points form the starting triangle. In 3-nearest mode, the program instead picks one point and selects the two points closest to it and uses that as the starting triangle. In the next pane, blue lines show the distance from each point outside the path to the nearest edge. That point is added to the path and the repeats until all points are added. Also notice the solution cost displayed in the bottom left corner of each pane.\relax }{figure.caption.1}{}}
+\@writefile{lof}{\contentsline {figure}{\numberline {2}{\ignorespaces Cost of all candidate solutions for 30 and 40 point TSP. Blue column are cost for runs starting with 3 points nearest to each other, red is for 3 points selected at random. The spread is about 10 units from best to worst in both problems, indicating that this algorithm is fairly sensitive to initial conditions.\relax }}{4}{figure.caption.2}}
+\newlabel{fig:hist}{{2}{4}{Cost of all candidate solutions for 30 and 40 point TSP. Blue column are cost for runs starting with 3 points nearest to each other, red is for 3 points selected at random. The spread is about 10 units from best to worst in both problems, indicating that this algorithm is fairly sensitive to initial conditions.\relax }{figure.caption.2}{}}

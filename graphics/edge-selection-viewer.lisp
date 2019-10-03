@@ -80,19 +80,24 @@
 	  (format t "OOPS! ~a is not a fun!" key))))
 
 
-(with-open-file
-    (f
-     (format nil "/home/max/ai-yam/project3/outfiles/foo-~A-~A.sexp" 30 0))
-  (iter
-    (for x = (read f nil :eof))
-    (with top = nil)
-    (cond
-      ((eql x :eof) (finish))
-      ((eql x 'end) (collect (reverse top)) (setq top nil))
-      (t (push x top)))))
-(defun fuck-big-time ()
+
+(defun coord-distance (x1 x2 y1 y2)
+  "mathy distance function"
+  (sqrt (+ (expt (- x1 x2) 2) (expt (- y1 y2) 2))))
+(defun distance (p1 p2)
+  "eucledian distance between two (n x y) points"
+  (destructuring-bind ((n1 x1 y1) (n2 x2 y2)) (list p1 p2)
+    (declare (ignore n1 n2))
+    (coord-distance x1 x2 y1 y2)))
+(defun cost (cycle)
+  (iter (for p1 in cycle)
+	(for p2 previous p1 initially (last-elt cycle))
+	(summing (distance p1 p2))))
+
+(defun controller-maker ()
   (let* ((filename-n-points 30)
 	 (filename-starting-point 1)
+	 (file-prefix "near")
 	 (ni 0)
 	 (nj 0)
 	 (instructions nil)
@@ -105,11 +110,13 @@
       :load-file
       (lambda (n-points starting-point)
 	(format t "filename : ~A~%" 
-	     (format nil "/home/max/ai-yam/project3/outfiles/foo-~A-~A.sexp" n-points starting-point))
+		(format nil "/home/max/ai-yam/project3/outfiles/~a-~A-~A.sexp"
+			file-prefix n-points starting-point))
 	(let ((result nil))
 	  (with-open-file
 	      (f
-	       (format nil "/home/max/ai-yam/project3/outfiles/foo-~A-~A.sexp" n-points starting-point))
+	       (format nil "/home/max/ai-yam/project3/outfiles/~a-~A-~A.sexp"
+		       file-prefix n-points starting-point))
 	    (iter
 	      (for x = (read f nil :eof))
 	      (with top = nil)
@@ -118,13 +125,17 @@
 		((and (atom x) (string= x 'end))
 		 (push (reverse top) result) (setq top nil))
 		(t (push x top)))))
-	  (if (null result) (format t "fuck! result is null!~%")
+	  (if (null result) (format t "controller-maker result is null!~%")
 	      (reverse result))))
 
       :file-selector
       (lambda (dn)
 	(setf filename-n-points (trim (+ filename-n-points (* 10 dn)) 30 40))
 	(@ self :starting-point-selector 0))
+
+      :file-prefix-toggle
+      (lambda ()
+	(setq file-prefix (if (string= file-prefix "rand") "near" "rand")))
 
       :starting-point-selector
       (lambda (dn)
@@ -163,6 +174,7 @@
 		       (draw-number n x y cs :black)))
 
 		((:cycle p-ls)
+		 (draw-number (floor (cost p-ls)) 0 -6 6)
 		 (iter (for p1 in p-ls)
 		       (for p2 previous p1 initially (last-elt p-ls))
 		       (for (n1 x1 y1) = p1)
@@ -187,14 +199,13 @@
     (@ self :file-selector 0) ;; preset
     self))
 
-
 (defun main-loop (win)
   "Run the game loop that handles input, rendering through the
   render function RENDER-FN, amongst others."
-  (let ((oops (fuck-big-time)))
+  (let ((controller (controller-maker)))
     (sdl2:with-event-loop (:method :poll)
       (:idle ()
-	     (@ oops :render)
+	     (@ controller :render)
 	     ;; Swap back buffer
 	     (sdl2:gl-swap-window win)
 	     (sdl2:delay 33))
@@ -202,12 +213,15 @@
        (:keysym keysym)
        (format t "Key pressed: ~a~%" (sdl2:scancode keysym))
        (case (sdl2:scancode keysym)
-	 (:scancode-left (@ oops :pane-selector -1))
-	 (:scancode-right (@ oops :pane-selector 1))
-	 (:scancode-up (@ oops :starting-point-selector 1))
-	 (:scancode-down (@ oops :starting-point-selector -1))
-	 (:scancode-1 (@ oops :file-selector -1))
-	 (:scancode-2 (@ oops :file-selector 1))
+	 (:scancode-left (@ controller :pane-selector -1))
+	 (:scancode-right (@ controller :pane-selector 1))
+	 (:scancode-up (@ controller :starting-point-selector 1))
+	 (:scancode-down (@ controller :starting-point-selector -1))
+	 (:scancode-1 (@ controller :file-selector -1))
+	 (:scancode-2 (@ controller :file-selector 1))
+	 (:scancode-3 (@ controller :pane-selector -100))
+	 (:scancode-4 (@ controller :pane-selector 100))
+	 (:scancode-5 (@ controller :file-prefix-toggle))
 	 (:scancode-escape (sdl2:push-event :quit))))
       (:quit () t))))
 
@@ -229,8 +243,6 @@
 
 	;; Run main loop
 	(main-loop win)))))
-
-
 
 (progn
   (main))

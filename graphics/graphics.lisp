@@ -51,7 +51,9 @@
 	  (:blue 0 0 1.0)
 	  (:yellow 1.0 1.0 0)
 	  (:cyan 0 1.0 1.0)
-	  (:magenta 1.0 0 1.0))))
+	  (:magenta 1.0 0 1.0)
+	  (:orange 1.0 .64 0)
+	  )))
   (defun get-color-from-name (name)
     (cond
       ((atom name)
@@ -120,6 +122,10 @@
       (floor number (expt 10 (floor (log number 10))))
     (list a b)))
 
+(defun number-to-digit-list (n)
+  (cond ((< n 10) (cons n nil))
+	(t (append (number-to-digit-list (floor n 10))
+		   (list (mod n 10))))))
 (let ((seven-segment-codes
        '((1 b c)
 	 (2 a b g e d)
@@ -132,12 +138,12 @@
 	 (9 a b c d f g)
 	 (0 a b c d e f))))
   (defun draw-number (number x y height &optional (color :green))
+    (when (numberp number) (setq number (number-to-digit-list number)))
     (cond
-      ((< number 10)
-	  (seven-segment x y height (cdr (assoc number seven-segment-codes)) color))
-      (t (let ((foo (decimal-pop number)))
-	   (draw-number (car foo) x y height color)
-	   (draw-number (cadr foo) (+ x (* height 0.55)) y height color))))))
+      ((null number) nil)
+      (t
+       (seven-segment x y height (cdr (assoc (car number) seven-segment-codes)) color)
+       (draw-number (cdr number) (+ x (* height 0.55)) y height color)))))
 
 (defun norm (x y)
   (sqrt (+ (expt x 2) (expt y 2))))
